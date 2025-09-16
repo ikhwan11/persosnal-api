@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"database/sql"
 	"fmt"
 	"net/http"
 	"os"
@@ -9,29 +8,22 @@ import (
 	"strings"
 	"time"
 
-	"my-personal-web/api/config"
+	"my-personal-web/database"
+	"my-personal-web/models"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 )
 
-type User struct {
-	ID       int64  `json:"id"`
-	Name     string `json:"name"`
-	Slug     string `json:"slug"`
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Image    string `json:"image"`
-	About    string `json:"about"`
-}
-
-// =========== CREATE
+// =========== Helper ===========
 
 func generateSlug(name string) string {
 	slug := strings.ToLower(name)
 	slug = strings.ReplaceAll(slug, " ", "-")
 	return slug
 }
+
+// =========== CREATE USER ===========
 
 func CreateUserHandler(c *gin.Context) {
 	name := c.PostForm("name")
@@ -43,14 +35,12 @@ func CreateUserHandler(c *gin.Context) {
 
 	imagePath := "public/image/default.jpg"
 
+	// Upload image
 	file, err := c.FormFile("image")
 	if err == nil {
 		ext := filepath.Ext(file.Filename)
-
-		// generate nama file: nama-user-image-YYYYMMDD.ext
-		cleanName := strings.ToLower(name)
-		cleanName = strings.ReplaceAll(cleanName, " ", "-")
-		dateStr := time.Now().Format("20060102") // YYYYMMDD
+		cleanName := strings.ReplaceAll(strings.ToLower(name), " ", "-")
+		dateStr := time.Now().Format("20060102")
 
 		uniqueName := fmt.Sprintf("%s-user-image-%s%s", cleanName, dateStr, ext)
 		imagePath = "public/image/" + uniqueName
@@ -68,115 +58,86 @@ func CreateUserHandler(c *gin.Context) {
 		return
 	}
 
-	// Simpan ke DB
-	_, err = config.DB.Exec(`
-		INSERT INTO users (name, slug, username, password, image, about)
-		VALUES (?, ?, ?, ?, ?, ?)`,
-		name, slug, username, string(hashedPassword), imagePath, about)
-	if err != nil {
+	user := models.User{
+		Name:     name,
+		Slug:     slug,
+		Username: username,
+		Password: string(hashedPassword),
+		Image:    imagePath,
+		About:    about,
+	}
+
+	if err := database.DB.Create(&user).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
 		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "User created",
-		"image":   imagePath,
+		"user":    user,
 	})
 }
 
-// ======= GET
+// =========== GET USERS ===========
 
-// GET all users
 func GetUsersHandler(c *gin.Context) {
-	rows, err := config.DB.Query(`
-		SELECT id, name, slug, username, image, about 
-		FROM users
-	`)
-	if err != nil {
+	var users []models.User
+	if err := database.DB.Find(&users).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch users"})
 		return
 	}
-	defer rows.Close()
-
-	var users []User
-	for rows.Next() {
-		var u User
-		if err := rows.Scan(&u.ID, &u.Name, &u.Slug, &u.Username, &u.Image, &u.About); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse user"})
-			return
-		}
-		users = append(users, u)
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"users": users,
-	})
+	c.JSON(http.StatusOK, gin.H{"users": users})
 }
 
-// GET user by slug
 func GetUserBySlugHandler(c *gin.Context) {
 	slug := c.Param("slug")
+	var user models.User
 
-	var u User
-	err := config.DB.QueryRow(`
-		SELECT id, name, slug, username, image, about 
-		FROM users 
-		WHERE slug = ?`, slug).
-		Scan(&u.ID, &u.Name, &u.Slug, &u.Username, &u.Image, &u.About)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user"})
-		}
+	if err := database.DB.Where("slug = ?", slug).First(&user).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
 
-	c.JSON(http.StatusOK, u)
+	c.JSON(http.StatusOK, user)
 }
 
-// =========== PUT
+// =========== UPDATE USER ===========
 
 func UpdateUserHandler(c *gin.Context) {
 	slug := c.Param("slug")
+	var oldUser models.User
 
-	// Ambil user lama dulu
-	var oldUser User
-	err := config.DB.QueryRow(`
-		SELECT id, name, slug, username, password, image, about 
-		FROM users WHERE slug = ?`, slug).
-		Scan(&oldUser.ID, &oldUser.Name, &oldUser.Slug, &oldUser.Username, &oldUser.Password, &oldUser.Image, &oldUser.About)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user"})
-		}
+	// Cari user lama
+	if err := database.DB.Where("slug = ?", slug).First(&oldUser).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
 
-	// Ambil form data
+	// Form data
 	name := c.PostForm("name")
 	username := c.PostForm("username")
 	password := c.PostForm("password")
 	about := c.PostForm("about")
 
 	// Update slug kalau nama diubah
-	newSlug := oldUser.Slug
 	if name != "" {
-		newSlug = generateSlug(name)
-	} else {
-		name = oldUser.Name
+		oldUser.Name = name
+		oldUser.Slug = generateSlug(name)
+	}
+
+	if username != "" {
+		oldUser.Username = username
+	}
+
+	if about != "" {
+		oldUser.About = about
 	}
 
 	// Handle image upload
-	imagePath := oldUser.Image
 	file, err := c.FormFile("image")
 	if err == nil {
 		ext := filepath.Ext(file.Filename)
-
-		cleanName := strings.ToLower(name)
-		cleanName = strings.ReplaceAll(cleanName, " ", "-")
+		cleanName := strings.ReplaceAll(strings.ToLower(oldUser.Name), " ", "-")
 		dateStr := time.Now().Format("20060102")
 
 		uniqueName := fmt.Sprintf("%s-user-image-%s%s", cleanName, dateStr, ext)
@@ -184,46 +145,28 @@ func UpdateUserHandler(c *gin.Context) {
 
 		// Hapus foto lama kalau bukan default
 		if oldUser.Image != "public/image/default.jpg" {
-			if removeErr := os.Remove(oldUser.Image); removeErr != nil && !os.IsNotExist(removeErr) {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove old image"})
-				return
-			}
+			_ = os.Remove(oldUser.Image)
 		}
 
-		// Simpan foto baru
-		if err := c.SaveUploadedFile(file, newImagePath); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save image"})
-			return
+		if err := c.SaveUploadedFile(file, newImagePath); err == nil {
+			oldUser.Image = newImagePath
 		}
-
-		imagePath = newImagePath
 	}
 
-	// Handle password update (hanya kalau ada input baru)
-	hashedPassword := oldUser.Password
+	// Update password
 	if password != "" {
-		newPass, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
-			return
-		}
-		hashedPassword = string(newPass)
+		newPass, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+		oldUser.Password = string(newPass)
 	}
 
-	// Update ke DB
-	_, err = config.DB.Exec(`
-		UPDATE users
-		SET name = ?, slug = ?, username = ?, password = ?, image = ?, about = ?
-		WHERE slug = ?`,
-		name, newSlug, username, hashedPassword, imagePath, about, slug)
-	if err != nil {
+	// Simpan perubahan
+	if err := database.DB.Save(&oldUser).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "User updated",
-		"slug":    newSlug,
-		"image":   imagePath,
+		"user":    oldUser,
 	})
 }

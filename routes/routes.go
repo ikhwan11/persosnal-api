@@ -1,7 +1,7 @@
 package routes
 
 import (
-	"my-personal-web/api/controller"
+	"my-personal-web/controller"
 
 	"github.com/gin-gonic/gin"
 )

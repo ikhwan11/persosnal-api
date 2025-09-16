@@ -1,0 +1,13 @@
+-- Migration UP: skills
+CREATE TABLE skills (
+    skill_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    cv_id BIGINT NOT NULL,
+    skill_category_name VARCHAR(150) NOT NULL,
+    skill_name VARCHAR(150) NOT NULL,
+    `desc` TEXT,
+    icon VARCHAR(255),
+    nilai INT CHECK (nilai BETWEEN 0 AND 100),
+    CONSTRAINT fk_skills_cv FOREIGN KEY (cv_id) REFERENCES cv(cv_id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"my-personal-web/api/config"
+	"my-personal-web/config"
 )
 
 func MigrateSeeders() {

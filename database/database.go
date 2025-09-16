@@ -1,16 +1,16 @@
-package config
+package database
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
 	"os"
 
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/joho/godotenv"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
-var DB *sql.DB
+var DB *gorm.DB
 
 func ConnectDatabase() {
 	// Load .env
@@ -26,21 +26,15 @@ func ConnectDatabase() {
 	pass := os.Getenv("DB_PASS")
 	name := os.Getenv("DB_NAME")
 
-	// Format DSN
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", user, pass, host, port, name)
+	// Format DSN (GORM MySQL driver)
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		user, pass, host, port, name)
 
-	// Buka koneksi
-	DB, err = sql.Open("mysql", dsn)
-	if err != nil {
-		log.Fatal("❌ Gagal membuka koneksi:", err)
-	}
-
-	// Test koneksi
-	err = DB.Ping()
+	// Koneksi dengan GORM
+	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("❌ Gagal koneksi database:", err)
 	}
 
 	log.Println("✅ Database connected")
 }
-

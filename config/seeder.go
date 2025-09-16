@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"my-personal-web/database"
 )
 
 // RunSeeder jalankan perintah seed
@@ -50,7 +52,7 @@ VALUES ('Example User', 'example-user', 'example', 'hashed_password', 'default.p
 `, name)
 
 	// tulis ke file
-	err := os.WriteFile(filename, []byte(content), 0644)
+	err := os.WriteFile(filename, []byte(content), 0o644)
 	if err != nil {
 		log.Fatalf("⚠️  Error creating seeder file: %v", err)
 	}
@@ -72,10 +74,12 @@ func runSeeder(name string) {
 		if q == "" {
 			continue
 		}
-		_, err := DB.Exec(q)
-		if err != nil {
-			log.Fatalf("⚠️  Failed execute query: %v", err)
+		res := database.DB.Exec(q)
+		if res.Error != nil {
+			log.Fatalf("⚠️ Failed execute query: %v", res.Error)
 		}
+		log.Printf("Rows affected: %d", res.RowsAffected)
+
 	}
 
 	fmt.Printf("✅ Seeder %s executed successfully\n", name)

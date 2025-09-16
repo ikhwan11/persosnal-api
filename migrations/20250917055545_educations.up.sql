@@ -1,0 +1,13 @@
+-- Migration UP: educations
+CREATE TABLE educations (
+    edu_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    cv_id BIGINT NOT NULL,
+    universitas_name VARCHAR(150) NOT NULL,
+    jurusan VARCHAR(150),
+    tahun VARCHAR(20),
+    `desc` TEXT,
+    IPK DECIMAL(3,2) CHECK (IPK >= 0.00 AND IPK <= 4.00),
+    CONSTRAINT fk_edu_cv FOREIGN KEY (cv_id) REFERENCES cv(cv_id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);

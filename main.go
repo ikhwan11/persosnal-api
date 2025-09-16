@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"os"
 
-	"my-personal-web/api/config"
-	"my-personal-web/api/routes"
-	"my-personal-web/api/utils"
+	"my-personal-web/database"
+	"my-personal-web/routes"
+	"my-personal-web/utils"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	config.ConnectDatabase()
+	database.ConnectDatabase()
 	utils.MigrateSeeders()
 
 	r := gin.Default()
