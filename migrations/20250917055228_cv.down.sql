@@ -1,2 +1,2 @@
 -- Migration DOWN: cv
-DROP TABLE IF EXISTS cv;
+DROP TABLE IF EXISTS cvs;

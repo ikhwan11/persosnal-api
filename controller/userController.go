@@ -10,18 +10,11 @@ import (
 
 	"my-personal-web/database"
 	"my-personal-web/models"
+	"my-personal-web/utils"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 )
-
-// =========== Helper ===========
-
-func generateSlug(name string) string {
-	slug := strings.ToLower(name)
-	slug = strings.ReplaceAll(slug, " ", "-")
-	return slug
-}
 
 // =========== CREATE USER ===========
 
@@ -31,7 +24,7 @@ func CreateUserHandler(c *gin.Context) {
 	password := c.PostForm("password")
 	about := c.PostForm("about")
 
-	slug := generateSlug(name)
+	slug := utils.GenerateSlug(name)
 
 	imagePath := "public/image/default.jpg"
 
@@ -122,7 +115,7 @@ func UpdateUserHandler(c *gin.Context) {
 	// Update slug kalau nama diubah
 	if name != "" {
 		oldUser.Name = name
-		oldUser.Slug = generateSlug(name)
+		oldUser.Slug = utils.GenerateSlug(name)
 	}
 
 	if username != "" {

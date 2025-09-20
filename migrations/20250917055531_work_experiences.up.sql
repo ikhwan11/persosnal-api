@@ -7,7 +7,7 @@ CREATE TABLE work_experiences (
     periode VARCHAR(100),
     tugas TEXT,
     pencapaian TEXT,
-    CONSTRAINT fk_we_cv FOREIGN KEY (cv_id) REFERENCES cv(cv_id) ON DELETE CASCADE,
+    CONSTRAINT fk_we_cv FOREIGN KEY (cv_id) REFERENCES cvs(cv_id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
