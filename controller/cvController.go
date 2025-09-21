@@ -76,7 +76,7 @@ func UpdateCVHandler(c *gin.Context) {
 	var oldcv models.CV
 
 	if err := database.DB.Where("slug = ?", slug).First(&oldcv).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "CV not found"})
 		return
 	}
 
