@@ -1,9 +1,9 @@
 -- Migration UP: cv
 CREATE TABLE cvs (
     cv_id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
+    `name` VARCHAR(255) NOT NULL,
     slug VARCHAR(255) UNIQUE NOT NULL,
-    image VARCHAR(255) NOT NULL,
+    `image` VARCHAR(255) NOT NULL,
     tagline VARCHAR(255) NOT NULL,
     about TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

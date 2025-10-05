@@ -19,18 +19,22 @@ func RunSeeder(command string, name string) {
 			log.Fatal("⚠️  Seeder name required. Example: go run main.go seed create users_seeder")
 		}
 		CreateSeeder(name)
+		os.Exit(0)
 
 	case "run":
 		if name == "" {
 			log.Fatal("⚠️  Seeder name required. Example: go run main.go seed run users_seeder")
 		}
 		runSeeder(name)
+		os.Exit(0)
 
 	case "refresh":
 		refreshSeeders()
+		os.Exit(0)
 
 	default:
 		fmt.Println("Unknown command. Use: create | run | refresh")
+		os.Exit(1)
 	}
 }
 
@@ -58,6 +62,7 @@ VALUES ('Example User', 'example-user', 'example', 'hashed_password', 'default.p
 	}
 
 	fmt.Println("✅ Seeder created:", filename)
+	os.Exit(0)
 }
 
 // jalankan 1 file seeder
@@ -83,6 +88,7 @@ func runSeeder(name string) {
 	}
 
 	fmt.Printf("✅ Seeder %s executed successfully\n", name)
+	os.Exit(0)
 }
 
 // jalankan semua seeder
@@ -100,4 +106,5 @@ func refreshSeeders() {
 	}
 
 	fmt.Println("✅ All seeders refreshed successfully")
+	os.Exit(0)
 }

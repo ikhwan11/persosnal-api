@@ -25,7 +25,6 @@ func RunMigration(command string, args ...string) {
 	dsn := fmt.Sprintf("mysql://%s:%s@tcp(%s:%s)/%s",
 		user, pass, host, port, name)
 
-	// handler perintah
 	switch command {
 	case "up":
 		m, err := migrate.New("file://migrations", dsn)
@@ -36,6 +35,7 @@ func RunMigration(command string, args ...string) {
 			log.Fatal(err)
 		}
 		fmt.Println("✅ Migration UP success")
+		os.Exit(0)
 
 	case "down":
 		m, err := migrate.New("file://migrations", dsn)
@@ -46,6 +46,7 @@ func RunMigration(command string, args ...string) {
 			log.Fatal(err)
 		}
 		fmt.Println("✅ Migration DOWN success")
+		os.Exit(0)
 
 	case "refresh":
 		m, err := migrate.New("file://migrations", dsn)
@@ -59,16 +60,19 @@ func RunMigration(command string, args ...string) {
 			log.Fatal(err)
 		}
 		fmt.Println("✅ Migration REFRESH success")
+		os.Exit(0)
 
 	case "create":
 		if len(args) < 1 {
 			fmt.Println("Usage: go run main.go create <migration_name>")
-			return
+			os.Exit(1)
 		}
 		createMigrationFile(args[0])
+		os.Exit(0)
 
 	default:
 		fmt.Println("Unknown command. Use: up | down | refresh | create <name>")
+		os.Exit(1)
 	}
 }
 
@@ -113,15 +117,16 @@ CREATE TABLE %s (
 DROP TABLE IF EXISTS %s;`, safeName, tableName)
 
 	// tulis file
-	if err := os.WriteFile(upFile, []byte(upContent), 0644); err != nil {
+	if err := os.WriteFile(upFile, []byte(upContent), 0o644); err != nil {
 		log.Fatal("❌ Gagal membuat file up migration:", err)
 	}
-	if err := os.WriteFile(downFile, []byte(downContent), 0644); err != nil {
+	if err := os.WriteFile(downFile, []byte(downContent), 0o644); err != nil {
 		log.Fatal("❌ Gagal membuat file down migration:", err)
 	}
 
 	fmt.Println("✅ Migration created:")
 	fmt.Println("   ", upFile)
 	fmt.Println("   ", downFile)
-}
 
+	os.Exit(0)
+}
